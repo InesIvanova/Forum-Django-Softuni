@@ -2,11 +2,19 @@ from django.http import  Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from .models import Question, Answer
 from .serializers import QuestionSerializer, AnswerSerializer
 
 # Create your views here.
+
+
+def validate_and_return_respone(serializer):
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class QuestionList(APIView):
@@ -48,10 +56,7 @@ class QuestionDetail(APIView):
         question = self.get_object(pk=pk)
         serializer = QuestionSerializer(question, data=request.data)
 
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        validate_and_return_respone(serializer)
 
     def delete(self, request, pk):
         question = self.get_object(pk=pk)
@@ -60,6 +65,7 @@ class QuestionDetail(APIView):
 
 
 class AnswerDetail(APIView):
+    permission_classes = (IsAuthenticated,)
 
     def get_object(self, pk):
         try:
@@ -86,3 +92,21 @@ class AnswerDetail(APIView):
             serializer = AnswerSerializer(answer)
             return Response(serializer.data)
 
+
+    def put(self, requst, pk, answer_pk):
+        answer = self.get_object(pk=answer_pk)
+        serializer = AnswerSerializer(answer, data=requst.data)
+
+        validate_and_return_respone(serializer)
+
+    def patch(self, request, pk, answer_pk):
+        answer = self.get_object(pk=answer_pk)
+        serializer = AnswerSerializer(answer, data=request.data)
+
+        validate_and_return_respone(serializer)
+
+
+    def delete(self, request, pk, answer_pk):
+        answer = self.get_object(pk=answer_pk)
+        answer.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
